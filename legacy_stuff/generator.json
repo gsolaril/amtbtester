@@ -1,0 +1,21 @@
+{
+    "symbols": ["EURUSD", "GBPUSD", "USDCHF", "AUDUSD"],
+    "meshes": [["SL", "TP"], ["ts", "tf"]],
+    "params": {
+        "SL": {
+            "values": [20, 25, 30, 35, 40, 45, 50, 55, 60],
+            "page": 0, "cell": 6, "type": "int", "def": 29},
+        "TP": {
+            "values": [4, 5, 6, 8, 10, 12, 15, 20, 30],
+            "page": 0, "cell": 7, "type": "int", "def": 5},
+        "maxSpread": {
+            "values": [5, 7, 10, 15, 20],
+            "page": 0, "cell": 12, "type": "int", "def": 10},
+        "ts": {
+            "values": ["22:00:00", "22:30:00", "23:00:00", "23:30:00"],
+            "page": 1, "cell": 8, "type": "str", "def": "23:00:00"},
+        "tf": {
+            "values": ["23:00:00", "23:10:00", "23:30:00", "23:59:00"],
+            "page": 1, "cell": 9, "type": "str", "def": "23:59:00"}
+    }
+}

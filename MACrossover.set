@@ -1,0 +1,6 @@
+boolean=true
+lbLong=12
+lbShort=8
+lotInit=0.01
+gFactor=0.0
+xStLoss=0.0001

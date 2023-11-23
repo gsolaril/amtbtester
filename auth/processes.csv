@@ -1,0 +1,2 @@
+name,mtver,file_ea,file_set,file_ini,tests,prog,optimized
+MACrossover,4,MACrossover.ex4,MACrossover.set,MACrossover.ini,0,0.0,False
