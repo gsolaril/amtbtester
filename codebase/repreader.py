@@ -30,6 +30,7 @@ class ReportReader:
     SYMBOL_SPECS = read_csv("./utils/specs.csv", index_col = "symbol")
     GROWTH_FACTORS = Index(numpy.linspace(0, 1, 5))
     COLUMNS_TICKS = ["time", "worst_ask", "worst_bid"]
+    COLUMNS_SERIES = ["balance", "equity", "profit", "margin", "returns", "mglevel"]
     CANDLE_SAMPLER = dict(worst_ask = "max", worst_bid = "min")
 
     FIELDS_INIT = dict(
@@ -317,59 +318,50 @@ class ReportReader:
 
         ############################################################################
 
-        gfactors = ["core", *numpy.linspace(0, 1, 3)]
+        gfactors = ["core", *numpy.linspace(0, 1, 2)]
         buffer_eqfall = {gf: dict() for gf in gfactors}
         buffer_margin = {gf: dict() for gf in gfactors}
         buffer_profit = {gf: dict() for gf in gfactors}
         balances = Series(deposit, index = gfactors)
 
-        columns_series = ["balance", "equity", "profit", "margin", "returns", "mglevel"]
         self.series = DataFrame(0.0, index = contexts.index, columns = gfactors)
-        self.series = {column: self.series.copy() for column in columns_series}
-        self.series = concat(self.series, axis = "columns", names = ["series", "gf"])
-        self.series["balance"] = deposit
+        self.series = {column: self.series.copy() for column in self.COLUMNS_SERIES}
+        self.series = concat(self.series, names = ["series", "gf"], axis = "columns")
         
-        for n, (ts, context) in enumerate(contexts.iterrows()):
+        for n, context in enumerate(contexts.itertuples()):
 
-            event, iD, lot = context[["event", "id", "lot"]]
+            growth = balances / deposit - 1
+            iD, lot = context.id, context.lot
 
             for gf in gfactors:
 
-                if (event == "signal"):
-                    
-                    if isinstance(gf, float):
-                        inc = balances[gf] / deposit
-                        lot = 1 + gf * (inc - 1)
-
-                    buffer_eqfall[gf][iD] = lot * context["pts_w"]
-                    buffer_profit[gf][iD] = lot * context["pts_x"]
-                    buffer_margin[gf][iD] = lot * context["margin_u"]
+                if (context.event == "signal"):
+                    if (gf != "core"): lot = 1 + growth[gf] * gf
+                    buffer_eqfall[gf][iD] = lot * context.pts_w
+                    buffer_profit[gf][iD] = lot * context.pts_x
+                    buffer_margin[gf][iD] = lot * context.margin_u
                     continue
 
                 eqfall = buffer_eqfall[gf][iD]
                 margin = buffer_margin[gf][iD]
                 profit = buffer_profit[gf][iD]
 
-                if (event == "entry"):
-
+                if (context.event == "entry"):
                     self.series[("equity", gf)].iloc[n] += eqfall
                     self.series[("margin", gf)].iloc[n] += margin
 
-                elif (event == "exit"):
-                    
-                    balances[gf] += profit
+                elif (context.event == "exit"):
                     self.series[("equity", gf)].iloc[n] -= eqfall
                     self.series[("margin", gf)].iloc[n] -= margin
                     self.series[("profit", gf)].iloc[n] += profit
+                    balances[gf] += profit
 
-        self.series["balance"] = self.series["profit"].cumsum() + self.series["balance"]
+        self.series["balance"] = self.series["profit"].cumsum() + deposit
         self.series["equity"] = self.series["equity"].cumsum() + self.series["balance"]
         self.series["margin"] = self.series["margin"].cumsum()
         self.series["mglevel"] = self.series["equity"] / self.series["margin"]
-        self.series["returns"] = self.series["profit"] / self.series["balance"]
-        
-        print("=" * 123, "Series:", "-" * 123, sep = "\n")
-        print(         self.series, "=" * 123, sep = "\n")
+        self.series["returns"] = self.series["profit"] / self.series["equity"]
+
         return self
 
 #███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -381,9 +373,8 @@ if (__name__ == "__main__"):
     reg = dict(id = "Test", mtver = 4)
     report = ReportReader.from_registry(reg)
         
-    if False: 
-        print(CHAR_PIPE_MID * 150, "header:", CHAR_PIPE_MID * 6, report.header, sep = "\n", end = "\n\n")
-        print(CHAR_PIPE_MID * 150, "events:", CHAR_PIPE_MID * 6, report.events, sep = "\n", end = "\n\n")
-        print(CHAR_PIPE_MID * 150, "trades:", CHAR_PIPE_MID * 6, report.trades, sep = "\n", end = "\n\n")
-        print(CHAR_PIPE_MID * 150, "series:", CHAR_PIPE_MID * 6, report.series, sep = "\n", end = "\n\n")
-        print(CHAR_PIPE_MID * 150, "stats:", CHAR_PIPE_MID * 6, report.stats, sep = "\n", end = "\n\n")
+    print(CHAR_PIPE_MID * 150, "header:", CHAR_PIPE_MID * 6, report.header, sep = "\n", end = "\n\n")
+    print(CHAR_PIPE_MID * 150, "events:", CHAR_PIPE_MID * 6, report.events, sep = "\n", end = "\n\n")
+    print(CHAR_PIPE_MID * 150, "trades:", CHAR_PIPE_MID * 6, report.trades, sep = "\n", end = "\n\n")
+    print(CHAR_PIPE_MID * 150, "series:", CHAR_PIPE_MID * 6, report.series, sep = "\n", end = "\n\n")
+    # print(CHAR_PIPE_MID * 150, "stats:", CHAR_PIPE_MID * 6, report.stats, sep = "\n", end = "\n\n")
